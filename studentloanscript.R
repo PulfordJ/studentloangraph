@@ -47,7 +47,7 @@ while(loan_frame$TotalLoan[last_row] >= 0)
                          loan_frame$TotalLoan[last_row]-paid_from_salary+interest_accured))
   last_row <- nrow(loan_frame)
 }
-
+loan_frame[nrow(loan_frame)]$Paid = loan_frame[nrow(loan_frame)-1]$TotalLoan
 loan_frame[nrow(loan_frame)]$Interest = 0
 loan_frame[nrow(loan_frame)]$PrincipalPaid = loan_frame[nrow(loan_frame)-1]$TotalLoan
 loan_frame[nrow(loan_frame)]$TotalLoan = 0
@@ -90,22 +90,24 @@ percent(sumOfInterestAsPercentOfLoan)
 #Some advance analysis of the idea of paying off part of the loan.
 rollapply(loan_frame$Interest, width = 12, by = 12, FUN = sum, align = "left") / (paid_from_salary * 12)
 rollapply(loan_frame$Interest, width = 12, by = 12, FUN = sum, align = "left") / (sum(loan_frame$Interest))
-return(c(sum(loan_frame$Paid[0:(30*12)], na.rm = TRUE), min(30, nrow(loan_frame) %/% 12)))
+return(c(sum(loan_frame$Paid[0:(30*12)], na.rm = TRUE), min(30, ceiling(nrow(loan_frame) / 12))))
 }
 #30000 -> 61837.3
+#total_loan = 21482
 total_loan = 30000
 early_payment = cbind(0, t(get_total_paid(total_loan)), 0, 0, 0)
-for (i in seq(total_loan, 0, by=-100))
+for (i in seq(total_loan-1000, 0, by=-1000))
 {
-  upfront_payment = 30000-i
+  upfront_payment = total_loan-i
   result = t(get_total_paid(i))
   saving = early_payment[1, 2]-result[1]-upfront_payment
   roi = saving/upfront_payment
+  roi_years = early_payment[1, 3]+1
   early_payment = rbind(early_payment, 
                               cbind(upfront_payment, result, 
                                     saving, 
                                     roi,
-                                    roi/30))
+                                    roi/roi_years))
 }
 early_payment_frame = data.frame(early_payment)
 names(early_payment_frame) = c("UpfrontPaid", "TotalPaidFromSalary", "TotalYearsPaid", "Savings", "ROI", "ROIPerYear")
